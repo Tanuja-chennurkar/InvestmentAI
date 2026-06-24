@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import './App.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://investment-research-backend.onrender.com';
+
 // ================= SVG Icons for SaaS Layout =================
 
 const SearchIcon = () => (
@@ -342,7 +344,7 @@ function ReportPage() {
     setAiReport(null);
 
     try {
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const response = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -384,7 +386,7 @@ function ReportPage() {
       setCompanyDetails(null);
 
       try {
-        const response = await fetch(`http://localhost:5000/api/company?ticker=${encodeURIComponent(ticker)}`);
+        const response = await fetch(`${API_BASE_URL}/api/company?ticker=${encodeURIComponent(ticker)}`);
         if (!response.ok) {
           throw new Error(`Failed to load details for ${ticker.toUpperCase()}`);
         }
@@ -603,7 +605,7 @@ function App() {
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/status');
+        const response = await fetch(`${API_BASE_URL}/api/status`);
         if (response.ok) {
           const data = await response.json();
           if (data && data.status === 'ok') {
@@ -631,7 +633,7 @@ function App() {
     setSearchResults([]);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(searchQuery)}`);
       if (!response.ok) {
         throw new Error('Failed to retrieve search results');
       }
@@ -656,7 +658,7 @@ function App() {
     setCompanyDetails(null);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/company?ticker=${encodeURIComponent(ticker)}`);
+      const response = await fetch(`${API_BASE_URL}/api/company?ticker=${encodeURIComponent(ticker)}`);
       if (!response.ok) {
         throw new Error(`Failed to load details for ${ticker.toUpperCase()}`);
       }

@@ -11,8 +11,15 @@ const PORT = process.env.PORT || 5000;
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 // Enable CORS for frontend requests
+const allowedOrigins = [
+  'http://localhost:5172',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:5172',
+  origin: allowedOrigins,
   credentials: true
 }));
 
