@@ -70,6 +70,68 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+async function fetchCompanyFallback(symbol) {
+  try {
+    const symbolUpper = symbol.toUpperCase();
+    console.log(`Running fallback data fetcher for ${symbolUpper}...`);
+    
+    // 1. Fetch quote metadata from chart endpoint (no crumb required)
+    const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbolUpper}?interval=1d&range=1d`;
+    const chartResponse = await fetch(chartUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      }
+    });
+    
+    let chartInfo = {};
+    if (chartResponse.ok) {
+      const data = await chartResponse.json();
+      chartInfo = data?.chart?.result?.[0]?.meta || {};
+    } else {
+      console.warn(`Chart endpoint failed with status: ${chartResponse.status}`);
+    }
+
+    // 2. Fetch sector/industry/name from search endpoint (no crumb required)
+    let searchInfo = {};
+    try {
+      const searchResults = await yahooFinance.search(symbolUpper);
+      const match = (searchResults.quotes || []).find(q => q.symbol === symbolUpper);
+      if (match) {
+        searchInfo = {
+          name: match.longname || match.shortname || match.symbol,
+          sector: match.sector,
+          industry: match.industry
+        };
+      }
+    } catch (searchError) {
+      console.warn(`Search fallback failed:`, searchError.message);
+    }
+
+    const details = {
+      name: chartInfo.longName || chartInfo.shortName || searchInfo.name || symbolUpper,
+      symbol: symbolUpper,
+      price: chartInfo.regularMarketPrice || null,
+      marketCap: null,
+      sector: searchInfo.sector || 'N/A',
+      industry: searchInfo.industry || 'N/A',
+      description: `Stock profile for ${symbolUpper}. Detailed business description and key financials are currently unavailable due to Yahoo Finance security policies on cloud servers.`,
+      currency: chartInfo.currency || 'USD',
+      financials: {
+        currentRatio: null,
+        debtToEquity: null,
+        operatingMargins: null,
+        profitMargin: null,
+        returnOnEquity: null
+      }
+    };
+
+    return details;
+  } catch (error) {
+    console.error(`Fallback fetcher failed for ${symbol}:`, error);
+    throw new Error(`Failed to fetch details for ticker ${symbol.toUpperCase()} (and fallback failed)`);
+  }
+}
+
 // Get company details endpoint
 app.get('/api/company', async (req, res) => {
   const ticker = req.query.ticker;
@@ -105,10 +167,15 @@ app.get('/api/company', async (req, res) => {
     res.json(details);
   } catch (error) {
     console.error(`Fetching company details failed for ${ticker}:`, error);
-    res.status(500).json({ 
-      error: `Failed to fetch details for ticker ${ticker.toUpperCase()}`,
-      details: error.message
-    });
+    try {
+      const fallbackDetails = await fetchCompanyFallback(ticker);
+      res.json(fallbackDetails);
+    } catch (fallbackError) {
+      res.status(500).json({ 
+        error: `Failed to fetch details for ticker ${ticker.toUpperCase()}`,
+        details: error.message
+      });
+    }
   }
 });
 
@@ -133,10 +200,31 @@ app.post('/api/analyze', async (req, res) => {
     console.log(`Running Multi-Stage AI Analysis workflow for ticker: ${symbol}...`);
 
     // 2. Fetch quote and financial summary details from Yahoo Finance
-    const quote = await yahooFinance.quote(symbol);
-    const summary = await yahooFinance.quoteSummary(symbol, {
-      modules: ['assetProfile', 'financialData', 'defaultKeyStatistics']
-    });
+    let quote, summary;
+    try {
+      quote = await yahooFinance.quote(symbol);
+      summary = await yahooFinance.quoteSummary(symbol, {
+        modules: ['assetProfile', 'financialData', 'defaultKeyStatistics']
+      });
+    } catch (yfError) {
+      console.warn(`Yahoo Finance primary fetch failed for ${symbol}, using fallback:`, yfError.message);
+      const fallbackDetails = await fetchCompanyFallback(symbol);
+      quote = {
+        longName: fallbackDetails.name,
+        shortName: fallbackDetails.name,
+        regularMarketPrice: fallbackDetails.price,
+        regularMarketCap: fallbackDetails.marketCap,
+        currency: fallbackDetails.currency
+      };
+      summary = {
+        assetProfile: {
+          sector: fallbackDetails.sector,
+          industry: fallbackDetails.industry,
+          longBusinessSummary: fallbackDetails.description
+        },
+        financialData: fallbackDetails.financials
+      };
+    }
 
     // 3. Fetch news articles from Yahoo Finance search autocomplete
     const searchResults = await yahooFinance.search(symbol);
