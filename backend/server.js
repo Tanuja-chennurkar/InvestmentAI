@@ -173,7 +173,7 @@ app.get('/api/company', async (req, res) => {
     } catch (fallbackError) {
       res.status(500).json({ 
         error: `Failed to fetch details for ticker ${ticker.toUpperCase()}`,
-        details: error.message
+        details: `${error.message} | Fallback failed: ${fallbackError.message}`
       });
     }
   }
