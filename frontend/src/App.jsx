@@ -388,7 +388,8 @@ function ReportPage() {
       try {
         const response = await fetch(`${API_BASE_URL}/api/company?ticker=${encodeURIComponent(ticker)}`);
         if (!response.ok) {
-          throw new Error(`Failed to load details for ${ticker.toUpperCase()}`);
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.details || errData.error || `Failed to load details for ${ticker.toUpperCase()}`);
         }
         const data = await response.json();
         setCompanyDetails(data);
@@ -660,7 +661,8 @@ function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/company?ticker=${encodeURIComponent(ticker)}`);
       if (!response.ok) {
-        throw new Error(`Failed to load details for ${ticker.toUpperCase()}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.details || errData.error || `Failed to load details for ${ticker.toUpperCase()}`);
       }
       const data = await response.json();
       setCompanyDetails(data);
