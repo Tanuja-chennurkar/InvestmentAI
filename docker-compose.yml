@@ -1,5 +1,6 @@
 services:
   backend:
+    image: tanujachennurkar/investmentplanner-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -9,6 +10,7 @@ services:
       - ./backend/.env
 
   frontend:
+    image: tanujachennurkar/investmentplanner-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile

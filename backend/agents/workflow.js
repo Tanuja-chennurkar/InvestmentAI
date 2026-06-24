@@ -197,7 +197,7 @@ Use markdown format.`;
   if (process.env.GEMINI_API_KEY) {
     try {
       const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
-      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, modelName: 'gemini-1.5-flash', temperature: 0.2 });
+      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, model: 'gemini-1.5-flash', modelName: 'gemini-1.5-flash', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -207,7 +207,7 @@ Use markdown format.`;
   } else if (process.env.OPENAI_API_KEY) {
     try {
       const { ChatOpenAI } = await import('@langchain/openai');
-      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, modelName: 'gpt-4o-mini', temperature: 0.2 });
+      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-4o-mini', modelName: 'gpt-4o-mini', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -245,7 +245,7 @@ Use markdown format.`;
   if (process.env.GEMINI_API_KEY) {
     try {
       const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
-      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, modelName: 'gemini-1.5-flash', temperature: 0.2 });
+      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, model: 'gemini-1.5-flash', modelName: 'gemini-1.5-flash', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -255,7 +255,7 @@ Use markdown format.`;
   } else if (process.env.OPENAI_API_KEY) {
     try {
       const { ChatOpenAI } = await import('@langchain/openai');
-      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, modelName: 'gpt-4o-mini', temperature: 0.2 });
+      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-4o-mini', modelName: 'gpt-4o-mini', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -291,7 +291,7 @@ Use markdown format.`;
   if (process.env.GEMINI_API_KEY) {
     try {
       const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
-      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, modelName: 'gemini-1.5-flash', temperature: 0.2 });
+      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, model: 'gemini-1.5-flash', modelName: 'gemini-1.5-flash', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -301,7 +301,7 @@ Use markdown format.`;
   } else if (process.env.OPENAI_API_KEY) {
     try {
       const { ChatOpenAI } = await import('@langchain/openai');
-      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, modelName: 'gpt-4o-mini', temperature: 0.2 });
+      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-4o-mini', modelName: 'gpt-4o-mini', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -339,7 +339,7 @@ Use markdown format.`;
   if (process.env.GEMINI_API_KEY) {
     try {
       const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
-      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, modelName: 'gemini-1.5-flash', temperature: 0.2 });
+      const llm = new ChatGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY, model: 'gemini-1.5-flash', modelName: 'gemini-1.5-flash', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -349,7 +349,7 @@ Use markdown format.`;
   } else if (process.env.OPENAI_API_KEY) {
     try {
       const { ChatOpenAI } = await import('@langchain/openai');
-      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, modelName: 'gpt-4o-mini', temperature: 0.2 });
+      const llm = new ChatOpenAI({ apiKey: process.env.OPENAI_API_KEY, model: 'gpt-4o-mini', modelName: 'gpt-4o-mini', temperature: 0.2 });
       const res = await llm.invoke(prompt);
       text = res.content;
     } catch (e) {
@@ -402,6 +402,7 @@ Your output MUST be a valid JSON object matching the JSON schema below. Do not w
       const { ChatGoogleGenerativeAI } = await import('@langchain/google-genai');
       const llm = new ChatGoogleGenerativeAI({
         apiKey: process.env.GEMINI_API_KEY,
+        model: 'gemini-1.5-flash',
         modelName: 'gemini-1.5-flash',
         temperature: 0.1
       });
@@ -417,6 +418,7 @@ Your output MUST be a valid JSON object matching the JSON schema below. Do not w
       const { ChatOpenAI } = await import('@langchain/openai');
       const llm = new ChatOpenAI({
         apiKey: process.env.OPENAI_API_KEY,
+        model: 'gpt-4o-mini',
         modelName: 'gpt-4o-mini',
         temperature: 0.1
       });
