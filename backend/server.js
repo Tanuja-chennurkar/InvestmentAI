@@ -3,6 +3,42 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import YahooFinance from 'yahoo-finance2';
 import { agent } from './agents/workflow.js';
+import https from 'https';
+
+function httpsGetJson(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const parsedUrl = new URL(url);
+      const options = {
+        hostname: parsedUrl.hostname,
+        path: parsedUrl.pathname + parsedUrl.search,
+        headers: headers,
+        method: 'GET'
+      };
+      https.get(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              resolve(JSON.parse(data));
+            } catch (e) {
+              reject(new Error(`Failed to parse JSON response: ${e.message}`));
+            }
+          } else {
+            reject(new Error(`Request failed with status code ${res.statusCode}`));
+          }
+        });
+      }).on('error', (err) => {
+        reject(err);
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
 dotenv.config();
 
@@ -77,18 +113,14 @@ async function fetchCompanyFallback(symbol) {
     
     // 1. Fetch quote metadata from chart endpoint (no crumb required)
     const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbolUpper}?interval=1d&range=1d`;
-    const chartResponse = await fetch(chartUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-      }
-    });
-    
     let chartInfo = {};
-    if (chartResponse.ok) {
-      const data = await chartResponse.json();
+    try {
+      const data = await httpsGetJson(chartUrl, {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+      });
       chartInfo = data?.chart?.result?.[0]?.meta || {};
-    } else {
-      console.warn(`Chart endpoint failed with status: ${chartResponse.status}`);
+    } catch (chartError) {
+      console.warn(`Chart endpoint failed:`, chartError.message);
     }
 
     // 2. Fetch sector/industry/name from search endpoint (no crumb required)
