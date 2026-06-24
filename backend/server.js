@@ -8,7 +8,14 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+const yahooFinance = new YahooFinance({
+  suppressNotices: ['yahooSurvey'],
+  fetchOptions: {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    }
+  }
+});
 
 // Enable CORS for frontend requests
 const allowedOrigins = [
@@ -56,7 +63,10 @@ app.get('/api/search', async (req, res) => {
     res.json(results);
   } catch (error) {
     console.error('Search failed:', error);
-    res.status(500).json({ error: 'Failed to search for companies' });
+    res.status(500).json({ 
+      error: 'Failed to search for companies',
+      details: error.message
+    });
   }
 });
 
@@ -95,7 +105,10 @@ app.get('/api/company', async (req, res) => {
     res.json(details);
   } catch (error) {
     console.error(`Fetching company details failed for ${ticker}:`, error);
-    res.status(500).json({ error: `Failed to fetch details for ticker ${ticker.toUpperCase()}` });
+    res.status(500).json({ 
+      error: `Failed to fetch details for ticker ${ticker.toUpperCase()}`,
+      details: error.message
+    });
   }
 });
 
@@ -175,7 +188,10 @@ app.post('/api/analyze', async (req, res) => {
     });
   } catch (error) {
     console.error(`Error in multi-stage analysis workflow for ${ticker}:`, error);
-    res.status(500).json({ error: `AI Analysis workflow failed for ${ticker.toUpperCase()}` });
+    res.status(500).json({ 
+      error: `AI Analysis workflow failed for ${ticker.toUpperCase()}`,
+      details: error.message
+    });
   }
 });
 
