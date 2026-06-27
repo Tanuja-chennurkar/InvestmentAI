@@ -2,7 +2,31 @@ import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import './App.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://investment-research-backend.onrender.com';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  Legend
+);
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // ================= SVG Icons for SaaS Layout =================
 
@@ -211,6 +235,267 @@ function CompanyInfoCard({ companyDetails }) {
   );
 }
 
+// ================= Standalone Interactive Stock Price Chart =================
+function StockChart({ ticker }) {
+  const [chartData, setChartData] = useState([]);
+  const [range, setRange] = useState('6m'); // '6m' or '1y'
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchHistoricalData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/historical?ticker=${encodeURIComponent(ticker)}&range=${range}`);
+        if (response.ok) {
+          const data = await response.json();
+          setChartData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching historical data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistoricalData();
+  }, [ticker, range]);
+
+  if (loading) {
+    return (
+      <div className="report-card chart-container" style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+        <div className="spinner"></div>
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Loading stock price history...</span>
+      </div>
+    );
+  }
+
+  const dates = chartData.map(d => d.date);
+  const prices = chartData.map(d => d.close);
+
+  const data = {
+    labels: dates,
+    datasets: [
+      {
+        label: `${ticker} Close Price`,
+        data: prices,
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79, 70, 229, 0.04)',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        fill: true,
+        tension: 0.15,
+      }
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        titleColor: '#fff',
+        bodyColor: '#e2e8f0',
+        padding: 10,
+        cornerRadius: 6,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          maxTicksLimit: 6,
+          font: {
+            size: 10
+          },
+          color: 'var(--text-secondary)'
+        }
+      },
+      y: {
+        grid: {
+          color: 'rgba(15, 23, 42, 0.05)'
+        },
+        ticks: {
+          font: {
+            size: 10
+          },
+          color: 'var(--text-secondary)'
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="report-card chart-card">
+      <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+          Stock Price Chart
+        </h3>
+        <div className="chart-range-selector" style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className={`range-btn ${range === '6m' ? 'active' : ''}`} 
+            onClick={() => setRange('6m')}
+          >
+            6 Months
+          </button>
+          <button 
+            className={`range-btn ${range === '1y' ? 'active' : ''}`} 
+            onClick={() => setRange('1y')}
+          >
+            1 Year
+          </button>
+        </div>
+      </div>
+      <div style={{ height: '240px', position: 'relative' }}>
+        {chartData.length === 0 ? (
+          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+            No price history available.
+          </div>
+        ) : (
+          <Line data={data} options={options} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ================= Key Financial Metrics Dashboard =================
+function KeyMetricsDashboard({ financials, price }) {
+  if (!financials) return null;
+
+  const metrics = [
+    {
+      label: 'P/E Ratio',
+      value: financials.peRatio ? financials.peRatio.toFixed(2) : 'N/A',
+      sub: 'Price-to-Earnings Valuation',
+      status: financials.peRatio && financials.peRatio < 20 ? 'positive' : financials.peRatio > 40 ? 'warning' : 'neutral'
+    },
+    {
+      label: 'EPS (TTM)',
+      value: financials.eps ? `${financials.eps.toFixed(2)}` : 'N/A',
+      sub: 'Earnings Per Share',
+      status: financials.eps && financials.eps > 0 ? 'positive' : 'neutral'
+    },
+    {
+      label: 'Return on Equity (ROE)',
+      value: financials.returnOnEquity ? `${(financials.returnOnEquity * 100).toFixed(2)}%` : 'N/A',
+      sub: 'Capital Efficiency (Bench: 15%)',
+      status: financials.returnOnEquity && financials.returnOnEquity >= 0.15 ? 'positive' : 'neutral'
+    },
+    {
+      label: 'Current Ratio',
+      value: financials.currentRatio ? `${financials.currentRatio.toFixed(2)}x` : 'N/A',
+      sub: 'Liquidity Margin (Bench: 1.5x)',
+      status: financials.currentRatio && financials.currentRatio >= 1.5 ? 'positive' : 'warning'
+    },
+    {
+      label: 'Debt-to-Equity',
+      value: financials.debtToEquity ? `${financials.debtToEquity.toFixed(2)}%` : 'N/A',
+      sub: 'Leverage Debt (Bench: 100%)',
+      status: financials.debtToEquity && financials.debtToEquity <= 100 ? 'positive' : financials.debtToEquity > 150 ? 'danger' : 'neutral'
+    },
+    {
+      label: 'Operating Margin',
+      value: financials.operatingMargins ? `${(financials.operatingMargins * 100).toFixed(2)}%` : 'N/A',
+      sub: 'Operating Profit Efficiency',
+      status: financials.operatingMargins && financials.operatingMargins >= 0.15 ? 'positive' : 'neutral'
+    },
+    {
+      label: '52-Week Range',
+      value: financials.fiftyTwoWeekLow && financials.fiftyTwoWeekHigh 
+        ? `$${financials.fiftyTwoWeekLow.toFixed(2)} - $${financials.fiftyTwoWeekHigh.toFixed(2)}`
+        : 'N/A',
+      sub: `Current Price: $${price ? price.toFixed(2) : 'N/A'}`,
+      status: 'neutral'
+    }
+  ];
+
+  return (
+    <div className="report-card metrics-dashboard-card">
+      <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px', borderBottom: '1px solid rgba(15,23,42,0.05)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="9" />
+          <rect x="14" y="3" width="7" height="5" />
+          <rect x="14" y="12" width="7" height="9" />
+          <rect x="3" y="16" width="7" height="5" />
+        </svg>
+        Key Financial Metrics
+      </h3>
+      <div className="metrics-dashboard-grid">
+        {metrics.map((m, idx) => (
+          <div key={idx} className="metric-box">
+            <div className="metric-label">{m.label}</div>
+            <div className={`metric-value ${m.status}`}>{m.value}</div>
+            <div className="metric-sub">{m.sub}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ================= Recent News Feed Component =================
+function RecentNewsFeed({ news }) {
+  if (!news || news.length === 0) return null;
+
+  const formatNewsDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="report-card news-feed-card">
+      <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '16px', borderBottom: '1px solid rgba(15,23,42,0.05)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
+        </svg>
+        Recent News Headlines
+      </h3>
+      <div className="news-articles-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {news.slice(0, 5).map((article, idx) => (
+          <div key={idx} className="news-article-item" style={{ padding: '8px 0', borderBottom: idx < news.slice(0, 5).length - 1 ? '1px solid rgba(15,23,42,0.05)' : 'none', textAlign: 'left' }}>
+            <a 
+              href={article.link} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="news-article-title"
+              style={{ display: 'block', fontSize: '13.5px', fontWeight: '600', color: 'var(--primary)', textDecoration: 'none', marginBottom: '4px', lineHeight: '1.4' }}
+            >
+              {article.title}
+            </a>
+            <div style={{ display: 'flex', gap: '12px', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+              <span>Source: <strong style={{ color: 'var(--text-primary)' }}>{article.publisher}</strong></span>
+              <span>•</span>
+              <span>{formatNewsDate(article.time)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ================= 1. PAGE COMPONENT: SearchPage =================
 function SearchPage({
   searchQuery,
@@ -221,7 +506,10 @@ function SearchPage({
   selectedTicker,
   handleSelectCompany,
   companyDetails,
-  isLoadingDetails
+  isLoadingDetails,
+  watchlist,
+  handleRemoveFromWatchlist,
+  handleAddToWatchlist
 }) {
   const navigate = useNavigate();
 
@@ -278,6 +566,64 @@ function SearchPage({
               <p className="no-results">Use the search box above to find companies.</p>
             )}
           </div>
+
+          {/* Watchlist Panel */}
+          <div className="watchlist-panel" style={{ marginTop: '24px', textAlign: 'left', borderTop: '1px solid rgba(15,23,42,0.06)', paddingTop: '20px' }}>
+            <h3 className="watchlist-title" style={{ fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" style={{ color: '#f59e0b' }}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              My Watchlist
+            </h3>
+            {watchlist.length === 0 ? (
+              <p className="no-watchlist" style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
+                No watchlisted tickers.
+              </p>
+            ) : (
+              <div className="watchlist-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {watchlist.map((symbol) => (
+                  <div
+                    key={symbol}
+                    onClick={() => handleSelectCompany(symbol)}
+                    className="watchlist-item"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'white',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(15, 23, 42, 0.06)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span className="watchlist-symbol" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      {symbol}
+                    </span>
+                    <button 
+                      className="watchlist-remove" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveFromWatchlist(symbol);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: '16px',
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        lineHeight: 1
+                      }}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -310,9 +656,46 @@ function SearchPage({
                   Trigger the sequential agent workflow to calculate a final rating based on fundamentals, financials, news, and risks.
                 </p>
               </div>
-              <button onClick={handleRunAnalysisClick} className="run-ai-banner-btn">
-                Run AI Analysis
-              </button>
+              <div className="banner-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {watchlist.includes(selectedTicker.toUpperCase()) ? (
+                  <button 
+                    onClick={() => handleRemoveFromWatchlist(selectedTicker)}
+                    className="watchlist-toggle-btn active"
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      background: '#f1f5f9',
+                      color: 'var(--text-primary)',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    ★ Saved
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => handleAddToWatchlist(selectedTicker)}
+                    className="watchlist-toggle-btn"
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      color: 'var(--text-secondary)',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    ☆ Watchlist
+                  </button>
+                )}
+                <button onClick={handleRunAnalysisClick} className="run-ai-banner-btn">
+                  Run AI Analysis
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -334,6 +717,28 @@ function ReportPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
   const [llmUnconfigured, setLlmUnconfigured] = useState(false);
+
+  const [isWatchlisted, setIsWatchlisted] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('investai_watchlist');
+    const list = saved ? JSON.parse(saved) : [];
+    setIsWatchlisted(list.includes(ticker.toUpperCase()));
+  }, [ticker]);
+
+  const toggleWatchlist = () => {
+    const saved = localStorage.getItem('investai_watchlist');
+    let list = saved ? JSON.parse(saved) : [];
+    const sym = ticker.toUpperCase();
+    if (list.includes(sym)) {
+      list = list.filter(s => s !== sym);
+      setIsWatchlisted(false);
+    } else {
+      list.push(sym);
+      setIsWatchlisted(true);
+    }
+    localStorage.setItem('investai_watchlist', JSON.stringify(list));
+  };
 
   const runAnalysis = useCallback(async () => {
     if (!ticker) return;
@@ -407,12 +812,31 @@ function ReportPage() {
   }, [ticker, runAnalysis]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
-      {/* Top row with Back Button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }} className="report-page-container">
+      {/* Top row with Back Button, Watchlist toggle and Print PDF action */}
+      <div className="report-action-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={() => navigate('/')} className="back-btn" style={{ display: 'flex', alignItems: 'center' }}>
           <ArrowLeftIcon /> Back to Search
         </button>
+        <div className="action-buttons-group" style={{ display: 'flex', gap: '10px' }}>
+          {isWatchlisted ? (
+            <button onClick={toggleWatchlist} className="watchlist-btn active-watchlist" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: '#f59e0b', color: 'white', fontWeight: '600', fontSize: '12.5px' }}>
+              ★ Watchlisted
+            </button>
+          ) : (
+            <button onClick={toggleWatchlist} className="watchlist-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'white', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '12.5px' }}>
+              ☆ Watchlist
+            </button>
+          )}
+          <button onClick={() => window.print()} className="print-report-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--primary)', color: 'white', fontWeight: '600', fontSize: '12.5px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Main content area */}
@@ -493,6 +917,14 @@ function ReportPage() {
 
           {/* ================= 2. Company Information Card (MIDDLE) ================= */}
           {companyDetails && <CompanyInfoCard companyDetails={companyDetails} />}
+
+          {/* Historical Stock Price Line Chart */}
+          {companyDetails && <StockChart ticker={ticker} />}
+
+          {/* Valuation & Financial Metrics Dashboard */}
+          {companyDetails && companyDetails.financials && (
+            <KeyMetricsDashboard financials={companyDetails.financials} price={companyDetails.price} />
+          )}
 
           {/* ================= 3. Skeleton Loading (Analysis In Progress) ================= */}
           {isAnalyzing && (
@@ -585,6 +1017,11 @@ function ReportPage() {
               </div>
             </div>
           )}
+
+          {/* Recent News Headlines Feed */}
+          {companyDetails && companyDetails.news && (
+            <RecentNewsFeed news={companyDetails.news} />
+          )}
         </div>
       )}
     </div>
@@ -601,6 +1038,27 @@ function App() {
   const [companyDetails, setCompanyDetails] = useState(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const [watchlist, setWatchlist] = useState(() => {
+    const saved = localStorage.getItem('investai_watchlist');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const handleAddToWatchlist = (symbol) => {
+    const sym = symbol.toUpperCase();
+    if (!watchlist.includes(sym)) {
+      const updated = [...watchlist, sym];
+      setWatchlist(updated);
+      localStorage.setItem('investai_watchlist', JSON.stringify(updated));
+    }
+  };
+
+  const handleRemoveFromWatchlist = (symbol) => {
+    const sym = symbol.toUpperCase();
+    const updated = watchlist.filter(s => s !== sym);
+    setWatchlist(updated);
+    localStorage.setItem('investai_watchlist', JSON.stringify(updated));
+  };
 
   // 1. Verify backend health check on mount
   useEffect(() => {
@@ -716,6 +1174,9 @@ function App() {
               handleSelectCompany={handleSelectCompany}
               companyDetails={companyDetails}
               isLoadingDetails={isLoadingDetails}
+              watchlist={watchlist}
+              handleRemoveFromWatchlist={handleRemoveFromWatchlist}
+              handleAddToWatchlist={handleAddToWatchlist}
             />
           } 
         />

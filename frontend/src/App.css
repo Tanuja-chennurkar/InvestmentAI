@@ -874,3 +874,177 @@
   margin-bottom: 20px;
   width: 100%;
 }
+
+/* ================= Watchlist, Metrics, Charts & News Enhancements ================= */
+
+.range-btn {
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--panel-border);
+  background: white;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.range-btn.active, .range-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.metrics-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.metric-box {
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: left;
+  transition: var(--transition-smooth);
+}
+
+.metric-box:hover {
+  background: white;
+  border-color: rgba(79, 70, 229, 0.15);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.metric-value.positive {
+  color: var(--success);
+}
+
+.metric-value.warning {
+  color: var(--warning);
+}
+
+.metric-value.danger {
+  color: var(--danger);
+}
+
+.metric-sub {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.watchlist-item:hover {
+  background: #f8fafc !important;
+  border-color: rgba(79, 70, 229, 0.2) !important;
+}
+
+.watchlist-remove:hover {
+  color: var(--danger) !important;
+}
+
+.watchlist-toggle-btn:hover {
+  border-color: rgba(79, 70, 229, 0.3) !important;
+  background: #f8fafc !important;
+}
+
+.watchlist-toggle-btn.active {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #d97706 !important;
+}
+
+.action-buttons-group .watchlist-btn:hover {
+  background: #f8fafc !important;
+  color: var(--text-primary) !important;
+}
+
+.action-buttons-group .watchlist-btn.active-watchlist:hover {
+  background: #d97706 !important;
+  color: white !important;
+}
+
+.print-report-btn:hover {
+  background: var(--primary-hover) !important;
+}
+
+/* ================= Print Layout for PDF Export ================= */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt !important;
+  }
+  
+  .app-header, 
+  .report-action-bar, 
+  .sidebar, 
+  .run-ai-banner,
+  .chart-range-selector,
+  .watchlist-toggle-btn,
+  .llm-config-guide-card,
+  button,
+  form {
+    display: none !important;
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-card, 
+  .recommendation-dashboard-card, 
+  .ai-report-card {
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    background: white !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .recommendation-dashboard-card {
+    border-left: 6px solid #cbd5e1 !important;
+  }
+  
+  .recommendation-dashboard-card.rating-invest {
+    border-left-color: #059669 !important;
+  }
+
+  .recommendation-dashboard-card.rating-hold {
+    border-left-color: #d97706 !important;
+  }
+
+  .recommendation-dashboard-card.rating-pass {
+    border-left-color: #dc2626 !important;
+  }
+
+  h1, h2, h3, h4 {
+    color: black !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Make sure chart canvas is printed nicely */
+  .chart-card {
+    page-break-inside: avoid !important;
+  }
+}
+

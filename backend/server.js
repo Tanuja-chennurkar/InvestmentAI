@@ -177,6 +177,14 @@ app.get('/api/company', async (req, res) => {
     const summary = await yahooFinance.quoteSummary(symbol, {
       modules: ['assetProfile', 'financialData', 'defaultKeyStatistics']
     });
+    const searchResults = await yahooFinance.search(symbol);
+
+    const news = (searchResults.news || []).map(n => ({
+      title: n.title,
+      publisher: n.publisher,
+      link: n.link,
+      time: n.providerPublishTime
+    }));
 
     const details = {
       name: quote.longName || quote.shortName || symbol,
@@ -192,8 +200,13 @@ app.get('/api/company', async (req, res) => {
         debtToEquity: summary.financialData?.debtToEquity || null,
         operatingMargins: summary.financialData?.operatingMargins || null,
         profitMargin: summary.financialData?.profitMargin || null,
-        returnOnEquity: summary.financialData?.returnOnEquity || null
-      }
+        returnOnEquity: summary.financialData?.returnOnEquity || null,
+        peRatio: quote.trailingPE || summary.defaultKeyStatistics?.trailingPE || null,
+        eps: quote.epsTrailingTwelveMonths || summary.defaultKeyStatistics?.trailingEps || null,
+        fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || null,
+        fiftyTwoWeekLow: quote.fiftyTwoWeekLow || null
+      },
+      news: news
     };
 
     res.json(details);
@@ -208,6 +221,43 @@ app.get('/api/company', async (req, res) => {
         details: `${error.message} | Fallback failed: ${fallbackError.message}`
       });
     }
+  }
+});
+
+// Get historical stock price data
+app.get('/api/historical', async (req, res) => {
+  const ticker = req.query.ticker;
+  const range = req.query.range || '1y'; // '6m' or '1y'
+  if (!ticker) {
+    return res.status(400).json({ error: 'Ticker query parameter "ticker" is required' });
+  }
+
+  try {
+    const symbol = ticker.toUpperCase();
+    const endDate = new Date();
+    const startDate = new Date();
+    if (range === '6m') {
+      startDate.setMonth(endDate.getMonth() - 6);
+    } else {
+      startDate.setFullYear(endDate.getFullYear() - 1);
+    }
+
+    const result = await yahooFinance.historical(symbol, {
+      period1: startDate,
+      period2: endDate,
+      interval: '1d'
+    });
+
+    const chartData = (result || []).map(day => ({
+      date: new Date(day.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }),
+      close: day.close,
+      volume: day.volume
+    }));
+
+    res.json(chartData);
+  } catch (error) {
+    console.error(`Fetching historical data failed for ${ticker}:`, error);
+    res.status(500).json({ error: `Failed to fetch historical data for ticker ${ticker.toUpperCase()}` });
   }
 });
 
