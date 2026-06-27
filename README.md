@@ -8,33 +8,53 @@ The application leverages a **five-stage LangGraph workflow** on the backend to 
 
 ---
 
-
 ## 🔍 Overview — What It Does
 
 The **AI Investment Research Agent** is a full-stack dashboard designed to automate the process of fundamental equity research. 
-- **Lookup & Discovery**: Users search for a company name or ticker (e.g., "Apple" or "TSLA") and receive real-time autocomplete results sourced directly from Yahoo Finance.
-- **Real-Time Fundamentals**: Inspects instant financial ratios including the **Current Ratio** (liquidity), **Debt-to-Equity** (leverage), **Operating Margin** (profitability), and **Return on Equity (ROE)** (capital efficiency).
-- **Multi-Stage AI Analysis**: Spawns an agentic workflow that gathers financial statistics, crawls recent news, analyzes risks, and compiles a comprehensive investment memo.
-- **Actionable Ratings**: Outputs a definitive rating (**INVEST**, **HOLD**, or **PASS**) alongside a confidence metric (0-100%) and bulleted lists of Positive Indicators vs. Key Concerns.
+
+### Core Features:
+- **Lookup & Discovery**: Search for a company name or ticker (e.g., "Apple" or "TSLA") and receive real-time autocomplete results sourced directly from Yahoo Finance.
+- **My Watchlist**: Save and quickly revisit favorite stocks in the sidebar. Persisted locally via browser `localStorage` for quick loading.
+- **Interactive Stock Chart**: Review historical stock price movements (6 Months / 1 Year ranges) rendered in an interactive line chart using Chart.js.
+- **Key Financial Metrics Grid**: Inspect valuation and safety metrics at a glance, including P/E Ratio, EPS (TTM), ROE, Current Ratio, Debt-to-Equity, Operating Margin, and the 52-Week High/Low.
+- **Multi-Stage AI Analysis**: Spawns an agentic workflow that gathers financial statistics, news reports, analyzes risks, and compiles a comprehensive investment memo.
+- **Improved News Feed**: View recent stock headlines with source publisher, publication date/time, and clickable direct article hyperlinks.
+- **Download PDF Report**: Click to generate a clean, professionally formatted PDF vector document of the entire research report.
 
 ---
 
 ## 🚀 How to Run It — Setup & Run Steps
 
-Follow these steps to configure and run the application on your local machine:
+Choose between running the application locally via Node.js or containerized using Docker.
 
-### 1. Prerequisites
-Ensure you have the following installed:
+### Option A: Running via Docker (Recommended)
+
+Start the entire application (frontend and backend) with a single command:
+
+1. Ensure **Docker** and **Docker Compose** are installed and running.
+2. From the **root directory**, run:
+   ```bash
+   docker compose up --build
+   ```
+3. Open the services:
+   - **React Frontend**: Ready at [http://localhost:5172/](http://localhost:5172/)
+   - **Express Backend**: Listening at [http://localhost:5000/](http://localhost:5000/)
+
+---
+
+### Option B: Running Locally
+
+#### 1. Prerequisites
 - **Node.js**: `v18.0.0` or higher (tested on `v24.14.0`)
 - **npm**: `v9.0.0` or higher
 
-### 2. Install Dependencies
+#### 2. Install Dependencies
 Run the command below from the **root directory** of the project to automatically install dependencies for the root concurrently manager, backend, and frontend packages:
 ```bash
 npm run install-all
 ```
 
-### 3. Configure Environment Variables
+#### 3. Configure Environment Variables
 1. Navigate to the `backend/` directory.
 2. Create or open the `.env` file (`backend/.env`).
 3. Set your preferred port and add **either** of the following API keys based on your preferred LLM provider:
@@ -51,15 +71,11 @@ OPENAI_API_KEY=your_openai_api_key_here
 ```
 *Note: If no API keys are configured, the backend automatically activates a robust rule-based mock generator using the real stock fundamentals to ensure the application remains fully functional.*
 
-### 4. Run the Application
+#### 4. Run the Application
 From the **root directory**, start both the Express backend and Vite React dev server concurrently by running:
 ```bash
 npm run dev
 ```
-
-The terminal will launch the processes:
-- **React Frontend**: Ready at [http://localhost:5172/](http://localhost:5172/)
-- **Express Backend**: Listening at [http://localhost:5000/](http://localhost:5000/)
 
 ---
 
@@ -70,29 +86,33 @@ The application is split into a modern client-server architecture with an agenti
 ```text
 InvestmentPlanner/
 ├── package.json          # Root scripts for concurrently running frontend & backend
+├── docker-compose.yml    # Docker orchestration file mapping ports 5172 & 5000
 ├── frontend/             # React (Vite) client application
 │   ├── src/
-│   │   ├── App.jsx       # Main dashboard component & state manager
-│   │   ├── App.css       # Layout styles, glows, & mobile responsiveness
+│   │   ├── App.jsx       # Main dashboard component, state manager, & charts
+│   │   ├── App.css       # Layout styles, glows, & print-media CSS rules
 │   │   ├── index.css     # Global theme variables & animations
 │   │   └── main.jsx      # Entrypoint
-│   └── package.json
+│   ├── Dockerfile        # Container recipe exposing port 5172
+│   └── package.json      # Dependencies (React 19, Chart.js, react-chartjs-2)
 └── backend/              # Express.js Node server
     ├── server.js         # API Router & Yahoo Finance controller
+    ├── Dockerfile        # Container recipe exposing port 5000
     ├── package.json      # Dependencies (Express, LangGraph, LangChain)
     ├── .env              # Local environment configs (API keys)
     └── agents/
         └── workflow.js   # Compiled LangGraph sequential pipeline
 ```
 
-### 1. Frontend (React + Vite)
+### 1. Frontend (React 19 + Vite)
 - **SaaS Layout UI**: A modern dashboard containing search lookup inputs, result listings, interactive financial stats cards, and glowing call-to-action blocks.
 - **Dynamic Routing**: Built with `react-router-dom` to support sharing links directly to stock reports (e.g. `/report/AAPL`).
 - **Real-Time Connection Hook**: Polls the backend health status every 10 seconds, showing a connection state indicator at the top right.
+- **Chart.js Line Graph**: Renders price movements smoothly using `@langchain`-compatible `chart.js` and `react-chartjs-2`.
 
 ### 2. Backend (Express.js + Yahoo Finance)
-- **API Router**: Exposes endpoints for connection check (`GET /api/status`), stock search (`GET /api/search`), raw company details (`GET /api/company`), and AI workflow research (`POST /api/analyze`).
-- **Hybrid Scraper/API Fetcher**: Leverages `yahoo-finance2` for primary fetches. If blocked by Cloudflare or crumb errors, it falls back to an direct HTTPS JSON scraper parsing raw financial quotes and charts.
+- **API Router**: Exposes endpoints for connection check (`GET /api/status`), stock search (`GET /api/search`), raw company details (`GET /api/company`), historical stock data (`GET /api/historical`), and AI workflow research (`POST /api/analyze`).
+- **Hybrid Scraper/API Fetcher**: Leverages `yahoo-finance2` for primary fetches. If blocked by Cloudflare or crumb errors, it falls back to a direct HTTPS JSON scraper parsing raw financial quotes and charts.
 
 ### 3. Agent Workflow (LangGraph)
 The core research logic in `backend/agents/workflow.js` compiles a sequential state graph via `@langchain/langgraph`:
@@ -119,25 +139,21 @@ graph TD
 
 ## ⚖️ Key Decisions & Trade-offs
 
-During the design and implementation of the agentic pipeline, several critical choices were made:
+During the design and implementation of the enhancements, several critical choices were made:
 
-### 1. Sequential LangGraph Architecture
-- **Decision**: Used a linear sequential graph rather than a cyclic routing graph (e.g. letting the agent query Yahoo Finance in a loop).
-- **Rationale**: Equity research reports have a highly standardized hierarchy (Overview -> Financials -> Sentiment -> Risks -> Decision). A sequential pipeline guarantees that each node focuses on its specific sub-task, minimizing hallucination and ensuring a consistent structure.
-- **Trade-off**: The agent cannot backtrack to re-fetch data if a node finds an anomaly. However, the comprehensive data fetch at the beginning of the API request ensures all nodes have complete information.
+### 1. Vector Print Stylesheets vs. html2canvas Libraries
+- **Decision**: Implemented native browser `window.print()` with a print-specific CSS stylesheet (`@media print`) instead of `html2canvas`/`jsPDF` screenshot engines.
+- **Rationale**: Screenshot-based PDF generators render canvas images, which result in blurry, pixelated text, fail to scale chart lines, and clip content across multi-page documents. Native print stylesheets keep text selectable, preserve vector chart scales, render high-contrast colors, and cleanly handle page breaks natively.
+- **Trade-off**: The user is presented with the browser print dialog where they must select "Save as PDF" instead of a direct headless download link, but the resulting document quality is significantly superior.
 
-### 2. Rule-Based Fallback Generator
-- **Decision**: Developed a local, deterministic fallback logic that calculates scoring and returns a full report block if API keys are missing or credentials fail.
-- **Rationale**: To provide a seamless user experience, the system should not crash if an LLM rate limit is hit or if a key expires.
-- **Trade-off**: The reasoning paragraphs in the fallback mode are more standardized compared to real LLM generation, but they remain accurate and grounded in real-time Yahoo Finance metrics.
+### 2. Client-Persisted Watchlist (localStorage)
+- **Decision**: Stored watchlist data directly in `localStorage` in the browser.
+- **Rationale**: Eliminates the need for a database, keeping the backend entirely stateless, lightweight, and fast.
+- **Trade-off**: The watchlist does not sync across different devices or browsers, but it provides instant response times with zero configuration overhead.
 
-### 3. Metric Grounding in Prompts
-- **Decision**: Injected standard financial benchmarks (e.g., Current Ratio > 1.5, Debt-to-Equity < 100%) directly into the prompt templates.
-- **Rationale**: General-purpose LLMs often label ratios arbitrarily (e.g., calling a D/E of 200% "healthy"). Hardcoding standard benchmarks inside the prompts forces the LLM to ground its assessments in traditional financial theory.
-
-### 4. What Was Left Out (Scope Boundaries)
-- **Historical Statement Crawling**: The agent currently inspects a snapshot of the most recent quarterly financials. We excluded crawling 10-year historical SEC filings to keep API response times under 15 seconds.
-- **Real-Time Technical Charts**: Standard stock price charting was left to focus the application on fundamental, value-based investment research rather than short-term day trading.
+### 3. React 19 Compatible Charting
+- **Decision**: Used the latest version of `chart.js` and `react-chartjs-2` to render the interactive stock price chart.
+- **Rationale**: Under React 19, many graphing libraries run into peer-dependency conflicts. The chosen libraries have native React 19 support, are lightweight, and render responsive, interactive charts.
 
 ---
 
@@ -150,46 +166,12 @@ Below are real, raw outputs generated by the agent workflow (running in rule-bac
 - **Confidence Score**: `70%`
 - **Positive Indicators**:
   - Conservative leverage with Debt-to-Equity at a healthy `79.55%`.
-  - Stellar profitability; Operating Margin of `32.27%` shows high pricing power.
-  - Exceptional Return on Equity (ROE) of `141.47%`.
-  - Leading market position and prominent sector dominance within Consumer Electronics.
+  - Operating Margin of `32.27%` shows high pricing power.
+  - Return on Equity (ROE) of `141.47%`.
 - **Key Concerns**:
   - Tight liquidity; Current Ratio is restricted at `1.07x` (below 1.5 benchmark).
-  - Subject to constant competitive pressures and technological disruptions.
 - **Reasoning Synthesis**:
-  > Based on a comprehensive fundamental review, Apple Inc. represents a compelling investment opportunity. The company exhibits exceptional operating profitability and superior return metrics, combined with a healthy capital structure. While short-term liquidity is relatively tight, its high cash generation capacity offsets immediate cash flow constraints, supporting a positive growth trajectory.
-
----
-
-### 2. Tesla, Inc. (TSLA)
-- **Investment Decision**: `HOLD`
-- **Confidence Score**: `60%`
-- **Positive Indicators**:
-  - Strong short-term liquidity with a Current Ratio of `2.04x`.
-  - Conservative leverage with Debt-to-Equity at a healthy `18.74%`.
-  - Leading market position and prominent sector dominance within Auto Manufacturers.
-- **Key Concerns**:
-  - Narrow profitability; Operating Margin is weak at `4.20%`.
-  - Low capital efficiency; ROE is below standard at `4.90%`.
-  - Subject to constant competitive pressures and technological disruptions.
-- **Reasoning Synthesis**:
-  > A HOLD recommendation is advised for Tesla, Inc. The company shows a balanced profile, with robust margins and strong sector positioning offset by moderate debt leverage and flat growth indicators. While there are no imminent default signs, current valuations reflect immediate fair value, leaving limited room for substantial capital appreciation. Maintain current holdings and wait for a more favorable entry point.
-
----
-
-### 3. NVIDIA Corporation (NVDA)
-- **Investment Decision**: `INVEST`
-- **Confidence Score**: `95%`
-- **Positive Indicators**:
-  - Strong short-term liquidity with a Current Ratio of `3.44x`.
-  - Conservative leverage with Debt-to-Equity at a healthy `6.55%`.
-  - Stellar profitability; Operating Margin of `65.60%` shows high pricing power.
-  - Exceptional Return on Equity (ROE) of `114.29%`.
-  - Leading market position and prominent sector dominance within Semiconductors.
-- **Key Concerns**:
-  - Subject to constant competitive pressures and technological disruptions.
-- **Reasoning Synthesis**:
-  > Based on a comprehensive fundamental review, NVIDIA Corporation represents a compelling investment opportunity. The company exhibits exceptional operating profitability and superior return metrics, combined with a healthy capital structure. While short-term liquidity is relatively tight, its high cash generation capacity offsets immediate cash flow constraints, supporting a positive growth trajectory.
+  > Based on a comprehensive review, Apple Inc. represents a compelling investment opportunity. The company exhibits exceptional operating profitability and superior return metrics, combined with a healthy capital structure. While short-term liquidity is relatively tight, its high cash generation capacity offsets immediate cash flow constraints.
 
 ---
 
@@ -198,7 +180,7 @@ Below are real, raw outputs generated by the agent workflow (running in rule-bac
 If we had more time to expand this project, we would prioritize the following enhancements:
 
 1. **Parallel Node Execution**:
-   - *Current*: The LangGraph pipeline runs nodes sequentially (Overview -> Financials -> News -> Risk).
+   - *Current*: The LangGraph pipeline runs nodes sequentially.
    - *Improvement*: Overview, Financials, and News analysis nodes do not depend on each other. We would redesign the graph to run these in parallel, reducing latency by **50% to 70%** (saving roughly 6-10 seconds per run).
 
 2. **Historical Ratio Analysis**:
@@ -208,7 +190,3 @@ If we had more time to expand this project, we would prioritize the following en
 3. **Conversational Q&A Widget**:
    - *Current*: The report is a static document.
    - *Improvement*: Add a floating chat window at the bottom of the generated report, letting users query a chatbot using the generated report and the source financials as context (e.g., *"Why does the agent worry about Apple's current ratio?"*).
-
-4. **Multi-Source Sentiment Aggregation**:
-   - *Current*: News headlines are fetched exclusively from Yahoo Finance.
-   - *Improvement*: Integrate Reddit (r/wallstreetbets, r/investing), Twitter sentiment, and SEC RSS feeds to generate a more comprehensive public sentiment profile.
